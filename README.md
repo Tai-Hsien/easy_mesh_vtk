@@ -113,3 +113,11 @@
     mesh.mesh_reflection(ref_axis='x')
     mesh.to_vtp('flipped_example.vtp')
     landmark.to_vtp('flipped_example_landmarks.vtp')
+
+	# create a new set of landmarks by loading fcsv, and convert to VTP file
+    landmark = Easy_Landmark()
+    landmark.read_fcsv('Sample_01_UR1.fcsv', ['DCP', 'MCP', 'LDP', 'PDP']) # 0: DCP, 1: MCP, 2: LDP, 3:PDP for incisors
+    landmark.to_vtp('Sample_01_UR1_landmarks.vtp')
+	
+	# convert to fcsv
+	landmark.to_fcsv('Sample_01_UR1_tmp.fcsv', ['DCP', 'MCP', 'LDP', 'PDP'])
