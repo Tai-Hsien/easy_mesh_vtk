@@ -116,8 +116,8 @@
 
 	# create a new set of landmarks by loading fcsv, and convert to VTP file
     landmark = Easy_Landmark()
-    landmark.read_fcsv('Sample_01_UR1.fcsv', ['DCP', 'MCP', 'LDP', 'PDP']) # 0: DCP, 1: MCP, 2: LDP, 3:PDP for incisors
+    landmark.read_fcsv('Sample_01_UR1.fcsv', ['DCP', 'MCP', 'PGP', 'LGP']) # 0: DCP, 1: MCP, 2: PGP, 3:LGP for incisors
     landmark.to_vtp('Sample_01_UR1_landmarks.vtp')
 	
 	# convert to fcsv
-	landmark.to_fcsv('Sample_01_UR1_tmp.fcsv', ['DCP', 'MCP', 'LDP', 'PDP'])
+	landmark.to_fcsv('Sample_01_UR1_tmp.fcsv', ['DCP', 'MCP', 'PGP', 'LGP'])

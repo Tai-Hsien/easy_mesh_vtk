@@ -34,7 +34,7 @@ class Easy_Landmark(object):
             self.load_point_attributes(self.vtkPolyData.GetPointData().GetArrayName(i_attribute), self.vtkPolyData.GetPointData().GetArray(i_attribute).GetNumberOfComponents())
 
 
-    def read_fcsv(self, fcsv_filename, landmark_name_list, header=None, skiprows=3):
+    def read_fcsv(self, fcsv_filename, landmark_name_list, header=None, skiprows=3, check_name=True):
         '''
         read fcsv, a csv from 3D Slicer for landmarks
         '''
@@ -42,10 +42,15 @@ class Easy_Landmark(object):
         lmk_df = pd.read_csv(self.filename, header=header, skiprows=skiprows)
         num_landmarks = len(lmk_df)
         landmarks = np.zeros([num_landmarks, 3])
-        i = 0
-        for i_name in landmark_name_list:
-            landmarks[i, :] = lmk_df.loc[lmk_df[11]==i_name][[1, 2, 3]].values
-            i += 1
+
+        if check_name:
+            i = 0
+            for i_name in landmark_name_list:
+                landmarks[i, :] = lmk_df.loc[lmk_df[11]==i_name][[1, 2, 3]].values
+                i += 1
+        else:
+            landmarks = lmk_df[[1, 2, 3]].values
+
         self.points = landmarks
 
 
@@ -268,6 +273,6 @@ class Easy_Landmark(object):
 
     # create a new set of landmarks by loading fcsv
     # landmark = Easy_Landmark()
-    # landmark.read_fcsv('Sample_01_UR1.fcsv', ['DCP', 'MCP', 'LDP', 'PDP']) # 0: DCP, 1: MCP, 2: LDP, 3:PDP for incisors
+    # landmark.read_fcsv('Sample_01_UR1.fcsv', ['DCP', 'MCP', 'PGP', 'LGP'], check_name=False) # 0: DCP, 1: MCP, 2: PGP, 3:LGP for incisors
     # landmark.to_vtp('Sample_01_UR1_landmarks.vtp')
     # landmark.to_fcsv('Sample_01_UR1_tmp.fcsv', ['DCP', 'MCP', 'LDP', 'PDP'])
