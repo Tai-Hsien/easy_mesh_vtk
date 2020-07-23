@@ -564,9 +564,14 @@ class Easy_Mesh(object):
         self.update_cell_ids_and_points() # all cell and point attributes are gone, include label
         
         self.cell_attributes['Label'] = original_cell_labels # add original cell label back
+        # for permanent teeth
         for i in range(1, 15):
             if len(self.cell_attributes['Label']==i) > 0:
                 flipped_cell_labels[self.cell_attributes['Label']==i] = 15-i #1 -> 14, 2 -> 13, ..., 14 -> 1
+        # for primary teeth
+        for i in range(15, 25):
+            if len(self.cell_attributes['Label']==i) > 0:
+                flipped_cell_labels[self.cell_attributes['Label']==i] = 39-i #15 -> 24, 16 -> 23, ..., 24 -> 15
         self.cell_attributes['Label'] = flipped_cell_labels # update flipped label
     
     
@@ -626,15 +631,15 @@ def GetVTKTransformationMatrix(rotate_X=[-180, 180], rotate_Y=[-180, 180], rotat
     return matrix
 
     
-if __name__ == '__main__':
+#if __name__ == '__main__':
     
     # create a new mesh by loading a VTP file
-    mesh = Easy_Mesh('Sample_010.vtp')
-    mesh.get_cell_edges()
-    mesh.get_cell_normals()
-    mesh.get_point_curvatures()
-    mesh.get_cell_curvatures()
-    mesh.to_vtp('example.vtp')
+#    mesh = Easy_Mesh('Sample_010.vtp')
+#    mesh.get_cell_edges()
+#    mesh.get_cell_normals()
+#    mesh.get_point_curvatures()
+#    mesh.get_cell_curvatures()
+#    mesh.to_vtp('example.vtp')
 #    
 #    # create a new mesh by loading a STL/OBJ file
 #    mesh = Easy_Mesh('Test5.stl')
@@ -675,9 +680,10 @@ if __name__ == '__main__':
 #    mesh_s.to_vtp('subdivision_example.vtp')
 #    
 #    # flip mesh for augmentation
-#    mesh_f = Easy_Mesh('A0_Sample_01.vtp')
-#    mesh_f.mesh_reflection(ref_axis='x')
-#    mesh_f.to_vtp('flipped_example.vtp')
+#    for i_sample in range(1, 37):
+#        mesh_f = Easy_Mesh('../Osaka_Sample_upper_d_{}.vtp'.format(i_sample))
+#        mesh_f.mesh_reflection(ref_axis='x')
+#        mesh_f.to_vtp('../Osaka_Sample_upper_d_{}.vtp'.format(i_sample+1000))
 #
 #    # create a new mesh from cells
 #    mesh2 = Easy_Mesh()
