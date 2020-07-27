@@ -72,7 +72,7 @@
     mesh2.compute_guassian_heatmap(mesh2.points[3])
     mesh2.to_vtp('Canine_d.vtp')
     
-    # downsampled UR3 (label==5) and compute heatmap
+    # upsampled UR3 (label==5) and compute displacement
     tooth_idx = np.where(mesh.cell_attributes['Label']==5)[0]
     mesh2 = Easy_Mesh()
     mesh2.cells = mesh.cells[tooth_idx]
@@ -86,6 +86,12 @@
     matrix = GetVTKTransformationMatrix()
     mesh.mesh_transform(matrix)
     mesh.to_vtp('example_t.vtp')
+	
+	# get boundary points
+	mesh = Easy_Mesh('Sample_010.vtp')
+    bps = mesh.get_boundary_points()
+    print(bps.shape)
+	
 	
 # easy_landmark_vtk
 
