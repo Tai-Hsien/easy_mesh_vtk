@@ -1,3 +1,4 @@
+
 import sys
 import numpy as np
 import vtk
@@ -257,6 +258,10 @@ class Easy_Mesh(object):
         v2[:, 1] = self.cells[:, 4] - self.cells[:, 7]
         v2[:, 2] = self.cells[:, 5] - self.cells[:, 8]
         mesh_normals = np.cross(v1, v2)
+        mesh_normal_length = np.linalg.norm(mesh_normals, axis=1)
+        mesh_normals[:, 0] /= mesh_normal_length[:]
+        mesh_normals[:, 1] /= mesh_normal_length[:]
+        mesh_normals[:, 2] /= mesh_normal_length[:]
         self.cell_attributes['Normal'] = mesh_normals
 
 
