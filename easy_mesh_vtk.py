@@ -475,100 +475,33 @@ class Easy_Mesh(object):
         input:
             ref_axis: 'x'/'y'/'z'
         '''
-        xmin = np.min(self.points[:, 0])
-        xmax = np.max(self.points[:, 0])
-        ymin = np.min(self.points[:, 1])
-        ymax = np.max(self.points[:, 1])
-        zmin = np.min(self.points[:, 2])
-        zmax = np.max(self.points[:, 2])
-        center = np.array([np.mean(self.points[:, 0]), np.mean(self.points[:, 1]), np.mean(self.points[:, 2])])
-
+        RefFilter = vtk.vtkReflectionFilter()
         if ref_axis == 'x':
-            point1 = [xmin, ymin, zmin]
-            point2 = [xmin, ymax, zmin]
-            point3 = [xmin, ymin, zmax]
+            RefFilter.SetPlaneToX()
         elif ref_axis == 'y':
-            point1 = [xmin, ymin, zmin]
-            point2 = [xmax, ymin, zmin]
-            point3 = [xmin, ymin, zmax]
+            RefFilter.SetPlaneToY()
         elif ref_axis == 'z':
-            point1 = [xmin, ymin, zmin]
-            point2 = [xmin, ymax, zmin]
-            point3 = [xmax, ymin, zmin]
+            RefFilter.SetPlaneToZ()
         else:
             if self.warning:
                 print('Invalid ref_axis!')
 
-        #get equation of the plane by three points
-        v1 = np.zeros([3,])
-        v2 = np.zeros([3,])
+        RefFilter.CopyInputOff()
+        RefFilter.SetInputData(self.vtkPolyData)
+        RefFilter.Update()
 
-        for i in range(3):
-            v1[i] = point1[i] - point2[i]
-            v2[i] = point1[i] - point3[i]
+        self.vtkPolyData = RefFilter.GetOutput()
+        self.get_mesh_data_from_vtkPolyData()
 
-        normal_vec = np.cross(v1, v2)/np.linalg.norm(np.cross(v1, v2))
-
-        flipped_cells = np.copy(self.cells)
-        flipped_points = np.copy(self.points)
-
-        #flip cells
-        for idx in range(len(self.cells)):
-            tmp_p1 = self.cells[idx, 0:3]
-            tmp_p2 = self.cells[idx, 3:6]
-            tmp_p3 = self.cells[idx, 6:9]
-
-            tmp_v1 = tmp_p1 - point1
-            dis_v1 = np.dot(tmp_v1, normal_vec)*normal_vec
-
-            tmp_v2 = tmp_p2 - point1
-            dis_v2 = np.dot(tmp_v2, normal_vec)*normal_vec
-
-            tmp_v3 = tmp_p3 - point1
-            dis_v3 = np.dot(tmp_v3, normal_vec)*normal_vec
-
-            flipped_p1 = tmp_p1 - 2*dis_v1
-            flipped_p2 = tmp_p2 - 2*dis_v2
-            flipped_p3 = tmp_p3 - 2*dis_v3
-
-            flipped_cells[idx, 0:3] = flipped_p1
-            flipped_cells[idx, 3:6] = flipped_p3 #change order p3 and p2
-            flipped_cells[idx, 6:9] = flipped_p2 #change order p3 and p2
-
-        #flip points
-        for idx in range(len(self.points)):
-            tmp_p1 = self.points[idx, 0:3]
-
-            tmp_v1 = tmp_p1 - point1
-            dis_v1 = np.dot(tmp_v1, normal_vec)*normal_vec
-
-            flipped_p1 = tmp_p1 - 2*dis_v1
-            flipped_points[idx, 0:3] = flipped_p1
-
-        #move flipped_cells and flipped_points back to the center
-        flipped_center = np.array([np.mean(flipped_points[:, 0]), np.mean(flipped_points[:, 1]), np.mean(flipped_points[:, 2])])
-        displacement = center - flipped_center
-
-        flipped_cells[:, 0:3] += displacement
-        flipped_cells[:, 3:6] += displacement
-        flipped_cells[:, 6:9] += displacement
-
-        original_cell_labels = self.cell_attributes['Label'].copy()
-        flipped_cell_labels = self.cell_attributes['Label'].copy()
-
-        self.cells = flipped_cells
-        self.update_cell_ids_and_points() # all cell and point attributes are gone, include label
-
-        self.cell_attributes['Label'] = original_cell_labels # add original cell label back
+        original_cell_labels = np.copy(self.cell_attributes['Label']) # add original cell label back
         # for permanent teeth
         for i in range(1, 15):
-            if len(self.cell_attributes['Label']==i) > 0:
-                flipped_cell_labels[self.cell_attributes['Label']==i] = 15-i #1 -> 14, 2 -> 13, ..., 14 -> 1
+            if len(original_cell_labels==i) > 0:
+                self.cell_attributes['Label'][original_cell_labels==i] = 15-i #1 -> 14, 2 -> 13, ..., 14 -> 1
         # for primary teeth
         for i in range(15, 25):
-            if len(self.cell_attributes['Label']==i) > 0:
-                flipped_cell_labels[self.cell_attributes['Label']==i] = 39-i #15 -> 24, 16 -> 23, ..., 24 -> 15
-        self.cell_attributes['Label'] = flipped_cell_labels # update flipped label
+            if len(original_cell_labels==i) > 0:
+                self.cell_attributes['Label'][original_cell_labels==i] = 39-i #15 -> 24, 16 -> 23, ..., 24 -> 15
 
 
     def get_boundary_points(self):
@@ -647,7 +580,7 @@ def GetVTKTransformationMatrix(rotate_X=[-180, 180], rotate_Y=[-180, 180], rotat
     return matrix
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
     # create a new mesh by loading a VTP file
 #    mesh = Easy_Mesh('Sample_010.vtp')
@@ -695,11 +628,12 @@ def GetVTKTransformationMatrix(rotate_X=[-180, 180], rotate_Y=[-180, 180], rotat
 #    mesh_s.compute_cell_attributes_by_svm(mesh.cells, mesh.cell_attributes['Label'], 'Label')
 #    mesh_s.to_vtp('subdivision_example.vtp')
 #
-#    # flip mesh for augmentation
-#    for i_sample in range(1, 37):
-#        mesh_f = Easy_Mesh('../Osaka_Sample_upper_d_{}.vtp'.format(i_sample))
-#        mesh_f.mesh_reflection(ref_axis='x')
-#        mesh_f.to_vtp('../Osaka_Sample_upper_d_{}.vtp'.format(i_sample+1000))
+   # flip mesh for augmentation
+   for i_sample in range(35, 36):
+       mesh_f = Easy_Mesh('Sample_0{}.vtp'.format(i_sample))
+       mesh_f.mesh_reflection(ref_axis='x')
+       mesh_f.to_vtp('Sample_0{}.vtp'.format(i_sample+1000))
+
 #
 #    # create a new mesh from cells
 #    mesh2 = Easy_Mesh()
