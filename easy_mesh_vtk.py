@@ -421,6 +421,20 @@ class Easy_Mesh(object):
         self.vtkPolyData = vtkPolyData
 
 
+    def extract_largest_region(self):
+        connect = vtk.vtkPolyDataConnectivityFilter()
+        connect.SetInputData(self.vtkPolyData)
+        connect.SetExtractionModeToLargestRegion()
+        connect.Update()
+
+        self.vtkPolyData = connect.GetOutput()
+        self.get_mesh_data_from_vtkPolyData()
+        if self.warning:
+            print('Warning! self.cell_attributes are reset and need to be updated!')
+        self.cell_attributes = dict() #reset
+        self.point_attributes = dict() #reset
+
+
     def mesh_decimation(self, reduction_rate):
         decimate_reader = vtk.vtkQuadricDecimation()
         decimate_reader.SetInputData(self.vtkPolyData)
@@ -629,11 +643,10 @@ if __name__ == '__main__':
 #    mesh_s.to_vtp('subdivision_example.vtp')
 #
    # flip mesh for augmentation
-   for i_sample in range(35, 36):
-       mesh_f = Easy_Mesh('Sample_0{}.vtp'.format(i_sample))
-       mesh_f.mesh_reflection(ref_axis='x')
-       mesh_f.to_vtp('Sample_0{}.vtp'.format(i_sample+1000))
-
+   # for i_sample in range(35, 36):
+   #     mesh_f = Easy_Mesh('Sample_0{}.vtp'.format(i_sample))
+   #     mesh_f.mesh_reflection(ref_axis='x')
+   #     mesh_f.to_vtp('Sample_0{}.vtp'.format(i_sample+1000))
 #
 #    # create a new mesh from cells
 #    mesh2 = Easy_Mesh()
@@ -678,3 +691,8 @@ if __name__ == '__main__':
     # landmark = Easy_Landmark()
     # landmark.points = bps
     # landmark.to_vtp('bps.vtp')
+
+    # keep largest surface
+    mesh = Easy_Mesh('test_connectivity.stl')
+    mesh.extract_largest_region()
+    mesh.to_vtp('keep_largest_surface.vtp')

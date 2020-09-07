@@ -92,6 +92,11 @@
     bps = mesh.get_boundary_points()
     print(bps.shape)
 	
+	# extract/keep the largest part from the entire mesh
+	mesh = Easy_Mesh('test_connectivity.stl')
+    mesh.extract_largest_region()
+    mesh.to_vtp('keep_largest_surface.vtp')
+	
 	
 # easy_landmark_vtk
 
