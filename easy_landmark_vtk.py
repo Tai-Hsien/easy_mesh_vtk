@@ -147,67 +147,26 @@ class Easy_Landmark(object):
         self.get_landmark_data_from_vtkPolyData()
 
 
-    def landmark_reflection(self, easy_mesh, ref_axis='x'):
-        xmin = np.min(easy_mesh.points[:, 0])
-        xmax = np.max(easy_mesh.points[:, 0])
-        ymin = np.min(easy_mesh.points[:, 1])
-        ymax = np.max(easy_mesh.points[:, 1])
-        zmin = np.min(easy_mesh.points[:, 2])
-        zmax = np.max(easy_mesh.points[:, 2])
-        center = np.array([np.mean(easy_mesh.points[:, 0]), np.mean(easy_mesh.points[:, 1]), np.mean(easy_mesh.points[:, 2])])
-
+    def landmark_reflection(self, ref_axis='x'):
+        RefFilter = vtk.vtkReflectionFilter()
         if ref_axis == 'x':
-            point1 = [xmin, ymin, zmin]
-            point2 = [xmin, ymax, zmin]
-            point3 = [xmin, ymin, zmax]
+            RefFilter.SetPlaneToX()
         elif ref_axis == 'y':
-            point1 = [xmin, ymin, zmin]
-            point2 = [xmax, ymin, zmin]
-            point3 = [xmin, ymin, zmax]
+            RefFilter.SetPlaneToY()
         elif ref_axis == 'z':
-            point1 = [xmin, ymin, zmin]
-            point2 = [xmin, ymax, zmin]
-            point3 = [xmax, ymin, zmin]
+            RefFilter.SetPlaneToZ()
         else:
             if self.warning:
                 print('Invalid ref_axis!')
 
-        #get equation of the plane by three points
-        v1 = np.zeros([3,])
-        v2 = np.zeros([3,])
+        RefFilter.CopyInputOff()
+        RefFilter.SetInputData(self.vtkPolyData)
+        RefFilter.Update()
+        print(RefFilter.GetCenter())
+        print(RefFilter.GetPlane())
 
-        for i in range(3):
-            v1[i] = point1[i] - point2[i]
-            v2[i] = point1[i] - point3[i]
-
-        normal_vec = np.cross(v1, v2)/np.linalg.norm(np.cross(v1, v2))
-
-        flipped_mesh_points = np.copy(easy_mesh.points)
-
-        #flip mesh points
-        for idx in range(len(easy_mesh.points)):
-            tmp_p1 = easy_mesh.points[idx, 0:3]
-
-            tmp_v1 = tmp_p1 - point1
-            dis_v1 = np.dot(tmp_v1, normal_vec)*normal_vec
-
-            flipped_p1 = tmp_p1 - 2*dis_v1
-            flipped_mesh_points[idx, 0:3] = flipped_p1
-
-        for idx in range(len(self.points)):
-            tmp_p1 = self.points[idx, 0:3]
-
-            tmp_v1 = tmp_p1 - point1
-            dis_v1 = np.dot(tmp_v1, normal_vec)*normal_vec
-
-            flipped_p1 = tmp_p1 - 2*dis_v1
-            self.points[idx, 0:3] = flipped_p1
-
-        #move flipped_mesh_points back to the center
-        flipped_center = np.array([np.mean(flipped_mesh_points[:, 0]), np.mean(flipped_mesh_points[:, 1]), np.mean(flipped_mesh_points[:, 2])])
-        displacement = center - flipped_center
-
-        self.points[:, 0:3] += displacement
+        self.vtkPolyData = RefFilter.GetOutput()
+        self.get_landmark_data_from_vtkPolyData()
 
 
     def to_vtp(self, vtp_filename):
@@ -263,13 +222,10 @@ class Easy_Landmark(object):
 #    landmark.landmark_transform(matrix)
 #    landmark.to_vtp('example_ld2.vtp')
 #
-#    # flip landmarks based on a mesh
-#    mesh = Easy_Mesh('A0_Sample_01.vtp')
-#    landmark = Easy_Landmark('A0_Sample_1_10_landmarks.vtp')
-#    landmark.landmark_reflection(mesh, ref_axis='x')
-#    mesh.mesh_reflection(ref_axis='x')
-#    mesh.to_vtp('flipped_example.vtp')
-#    landmark.to_vtp('flipped_example_landmarks.vtp')
+#    # flip landmarks
+#    landmark = Easy_Landmark('Sample_1_landmarks.vtp')
+#    landmark.landmark_reflection(ref_axis='x')
+#    landmark.to_vtp('flipped_example_1_landmarks.vtp')
 
     # create a new set of landmarks by loading fcsv
     # landmark = Easy_Landmark()
