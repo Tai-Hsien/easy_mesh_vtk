@@ -162,8 +162,6 @@ class Easy_Landmark(object):
         RefFilter.CopyInputOff()
         RefFilter.SetInputData(self.vtkPolyData)
         RefFilter.Update()
-        print(RefFilter.GetCenter())
-        print(RefFilter.GetPlane())
 
         self.vtkPolyData = RefFilter.GetOutput()
         self.get_landmark_data_from_vtkPolyData()

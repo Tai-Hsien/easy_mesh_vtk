@@ -112,18 +112,15 @@
     landmark.landmark_transform(matrix)
     landmark.to_vtp('example_ld2.vtp')
     
-    # flip landmarks based on a mesh
-    mesh = Easy_Mesh('A0_Sample_01.vtp')
-    landmark = Easy_Landmark('A0_Sample_1_10_landmarks.vtp')
-    landmark.landmark_reflection(mesh, ref_axis='x')
-    mesh.mesh_reflection(ref_axis='x')
-    mesh.to_vtp('flipped_example.vtp')
-    landmark.to_vtp('flipped_example_landmarks.vtp')
+    # flip landmarks
+    landmark = Easy_Landmark('Sample_1_landmarks.vtp')
+    landmark.landmark_reflection(ref_axis='x')
+    landmark.to_vtp('flipped_example_1_landmarks.vtp')
 
-	# create a new set of landmarks by loading fcsv, and convert to VTP file
+    # create a new set of landmarks by loading fcsv, and convert to VTP file
     landmark = Easy_Landmark()
     landmark.read_fcsv('Sample_01_UR1.fcsv', ['DCP', 'MCP', 'PGP', 'LGP']) # 0: DCP, 1: MCP, 2: PGP, 3:LGP for incisors
     landmark.to_vtp('Sample_01_UR1_landmarks.vtp')
-	
-	# convert to fcsv
-	landmark.to_fcsv('Sample_01_UR1_tmp.fcsv', ['DCP', 'MCP', 'PGP', 'LGP'])
+
+    # convert to fcsv
+    landmark.to_fcsv('Sample_01_UR1_tmp.fcsv', ['DCP', 'MCP', 'PGP', 'LGP'])
