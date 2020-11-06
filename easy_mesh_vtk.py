@@ -181,10 +181,15 @@ class Easy_Mesh(object):
     def get_cell_curvatures(self, method='mean'):
         self.get_point_curvatures(method=method)
         self.cell_attributes['Curvature'] = np.zeros([self.cells.shape[0], 1])
-        for i_cell in range(self.cells.shape[0]):
-            p_idx = self.cell_ids[i_cell][:]
-            p_curv = self.point_attributes['Curvature'][p_idx]
-            self.cell_attributes['Curvature'][i_cell] = np.mean(p_curv)
+        # for i_cell in range(self.cells.shape[0]):
+        #     p_idx = self.cell_ids[i_cell][:]
+        #     p_curv = self.point_attributes['Curvature'][p_idx]
+        #     self.cell_attributes['Curvature'][i_cell] = np.mean(p_curv)
+
+        # optimized way
+        tmp_cell_curvts = self.point_attributes['Curvature'][self.cell_ids].squeeze()
+        self.cell_attributes['Curvature'] = np.mean(tmp_cell_curvts, axis=-1).reshape([tmp_cell_curvts.shape[0], 1])
+
 
 
     def load_cell_attributes(self, attribute_name, dim):
