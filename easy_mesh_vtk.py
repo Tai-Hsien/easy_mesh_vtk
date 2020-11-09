@@ -181,10 +181,6 @@ class Easy_Mesh(object):
     def get_cell_curvatures(self, method='mean'):
         self.get_point_curvatures(method=method)
         self.cell_attributes['Curvature'] = np.zeros([self.cells.shape[0], 1])
-        # for i_cell in range(self.cells.shape[0]):
-        #     p_idx = self.cell_ids[i_cell][:]
-        #     p_curv = self.point_attributes['Curvature'][p_idx]
-        #     self.cell_attributes['Curvature'][i_cell] = np.mean(p_curv)
 
         # optimized way
         tmp_cell_curvts = self.point_attributes['Curvature'][self.cell_ids].squeeze()
@@ -321,7 +317,7 @@ class Easy_Mesh(object):
         if given_cell_attributes.shape[1] == 1:
             self.cell_attributes[attribute_name] = np.zeros([self.cells.shape[0], 1])
             clf = svm.SVC()
-            clf.fit(given_cells, given_cell_attributes)
+            clf.fit(given_cells, given_cell_attributes.ravel())
             self.cell_attributes[attribute_name][:, 0] = clf.predict(self.cells)
         else:
             if self.warning:
@@ -433,6 +429,13 @@ class Easy_Mesh(object):
 
 
     def mesh_decimation(self, reduction_rate):
+        # check mesh has label attribute or not
+        original_label_status = False
+        if 'Label' in self.cell_attributes.keys():
+            original_label_status = True
+            original_cells = self.cells.copy()
+            original_labels = self.cell_attributes['Label'].copy()
+
         decimate_reader = vtk.vtkQuadricDecimation()
         decimate_reader.SetInputData(self.vtkPolyData)
         decimate_reader.SetTargetReduction(reduction_rate)
@@ -445,6 +448,9 @@ class Easy_Mesh(object):
         self.cell_attributes = dict() #reset
         self.point_attributes = dict() #reset
 
+        if original_label_status:
+            self.compute_cell_attributes_by_svm(original_cells, original_labels, 'Label')
+
 
     def mesh_subdivision(self, num_subdivisions, method='loop'):
         if method == 'loop':
@@ -455,6 +461,13 @@ class Easy_Mesh(object):
             if self.warning:
                 print('Not a valid subdivision method')
 
+        # check mesh has label attribute or not
+        original_label_status = False
+        if 'Label' in self.cell_attributes.keys():
+            original_label_status = True
+            original_cells = self.cells.copy()
+            original_labels = self.cell_attributes['Label'].copy()
+
         subdivision_reader.SetInputData(self.vtkPolyData)
         subdivision_reader.SetNumberOfSubdivisions(num_subdivisions)
         subdivision_reader.Update()
@@ -464,6 +477,9 @@ class Easy_Mesh(object):
             print('Warning! self.cell_attributes are reset and need to be updated!')
         self.cell_attributes = dict() #reset
         self.point_attributes = dict() #reset
+
+        if original_label_status:
+            self.compute_cell_attributes_by_svm(original_cells, original_labels, 'Label')
 
 
     def mesh_transform(self, vtk_matrix):
@@ -589,107 +605,3 @@ def GetVTKTransformationMatrix(rotate_X=[-180, 180], rotate_Y=[-180, 180], rotat
     matrix = Trans.GetMatrix()
 
     return matrix
-
-
-if __name__ == '__main__':
-
-    # create a new mesh by loading a VTP file
-#    mesh = Easy_Mesh('Sample_010.vtp')
-#    mesh.get_cell_edges()
-#    mesh.get_cell_normals()
-#    mesh.get_point_curvatures()
-#    mesh.get_cell_curvatures()
-#    mesh.to_vtp('example.vtp')
-#
-#    # create a new mesh by loading a STL/OBJ file
-#    mesh = Easy_Mesh('Test5.stl')
-#    mesh.set_cell_labels(np.ones([mesh.cells.shape[0], 1]))
-#    mesh.get_cell_edges()
-#    mesh.get_cell_normals()
-#    mesh.to_vtp('example2.vtp')
-#
-#    # create a new mesh by loading a main STL file and label it with other STL files
-#    mesh = Easy_Mesh('Sample_01_d.stl')
-#    mesh1 = Easy_Mesh('Sample_01_T2_d.stl')
-#    mesh2 = Easy_Mesh('Sample_01_T3_d.stl')
-#    ## make a label dict in which key=str(label_ID), value=cells (i.e., [n, 9] array)
-#    label_dict = {'1': mesh1.cells, '2': mesh2.cells}
-#    mesh.set_cell_labels(label_dict)
-#    mesh.to_vtp('example_with_labels.vtp')
-#    mesh.mesh_reflection('x')
-#    mesh.to_vtp('example_with_labels_fliped.vtp')
-#
-#    # decimation
-#    mesh_d = Easy_Mesh('A0_Sample_01.vtp')
-#    mesh_d.mesh_decimation(0.5)
-#    print(mesh_d.cells.shape)
-#    print(mesh_d.points.shape)
-#    mesh_d.get_cell_edges()
-#    mesh_d.get_cell_normals()
-#    mesh_d.compute_cell_attributes_by_svm(mesh.cells, mesh.cell_attributes['Label'], 'Label')
-#    mesh_d.to_vtp('decimation_example.vtp')
-#
-#    # subdivision
-#    mesh_s = Easy_Mesh('A0_Sample_01.vtp')
-#    mesh_s.mesh_subdivision(2, method='butterfly')
-#    print(mesh_s.cells.shape)
-#    print(mesh_s.points.shape)
-#    mesh_s.get_cell_edges()
-#    mesh_s.get_cell_normals()
-#    mesh_s.compute_cell_attributes_by_svm(mesh.cells, mesh.cell_attributes['Label'], 'Label')
-#    mesh_s.to_vtp('subdivision_example.vtp')
-#
-   # flip mesh for augmentation
-   # for i_sample in range(35, 36):
-   #     mesh_f = Easy_Mesh('Sample_0{}.vtp'.format(i_sample))
-   #     mesh_f.mesh_reflection(ref_axis='x')
-   #     mesh_f.to_vtp('Sample_0{}.vtp'.format(i_sample+1000))
-#
-#    # create a new mesh from cells
-#    mesh2 = Easy_Mesh()
-#    mesh2.cells = mesh.cells[np.where(mesh.cell_attributes['Label']==1)[0]]
-#    mesh2.update_cell_ids_and_points()
-#    mesh2.set_cell_labels(mesh.cell_attributes['Label'][np.where(mesh.cell_attributes['Label']==1)[0]])
-#    mesh2.to_vtp('part_example.vtp')
-#
-#    # downsampled UR3 (label==5) and compute heatmap
-#    tooth_idx = np.where(mesh.cell_attributes['Label']==5)[0]
-#    print(len(tooth_idx))
-#    mesh2 = Easy_Mesh()
-#    mesh2.cells = mesh.cells[tooth_idx]
-#    mesh2.update_cell_ids_and_points()
-#    target_cells = 400
-#    rate = 1.0 - target_cells/len(tooth_idx) - 0.005
-#    mesh2.mesh_decimation(rate)
-#    mesh2.get_cell_normals()
-#    mesh2.compute_guassian_heatmap(mesh2.points[3])
-#    mesh2.to_vtp('Canine_d.vtp')
-#
-#    # downsampled UR3 (label==5) and compute heatmap
-#    tooth_idx = np.where(mesh.cell_attributes['Label']==5)[0]
-#    mesh2 = Easy_Mesh()
-#    mesh2.cells = mesh.cells[tooth_idx]
-#    mesh2.update_cell_ids_and_points()
-#    mesh2.mesh_subdivision(2, method='butterfly')
-#    mesh2.get_cell_normals()
-#    mesh2.compute_displacement_map(np.array([0, 0, 0]))
-#    mesh2.to_vtp('Canine_s.vtp')
-#
-#    # trnasform a mesh
-#    matrix = GetVTKTransformationMatrix()
-#    mesh.mesh_transform(matrix)
-#    mesh.to_vtp('example_t.vtp')
-
-    # output boundary points
-    # mesh = Easy_Mesh('Sample_010.vtp')
-    # bps = mesh.get_boundary_points()
-    # print(bps.shape)
-    # from easy_landmark_vtk import *
-    # landmark = Easy_Landmark()
-    # landmark.points = bps
-    # landmark.to_vtp('bps.vtp')
-
-    # keep largest surface
-    mesh = Easy_Mesh('test_connectivity.stl')
-    mesh.extract_largest_region()
-    mesh.to_vtp('keep_largest_surface.vtp')
