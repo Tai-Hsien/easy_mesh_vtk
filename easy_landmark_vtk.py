@@ -34,11 +34,19 @@ class Easy_Landmark(object):
             self.load_point_attributes(self.vtkPolyData.GetPointData().GetArrayName(i_attribute), self.vtkPolyData.GetPointData().GetArray(i_attribute).GetNumberOfComponents())
 
 
-    def read_fcsv(self, fcsv_filename, landmark_name_list, header=None, skiprows=3, check_name=True):
+    def read_fcsv(self, fcsv_filename, landmark_name_list, header=None, skiprows=3, check_name=True, LPS=False):
         '''
         read fcsv, a csv from 3D Slicer for landmarks
         '''
         self.filename = fcsv_filename
+        # check if it's LPS coordinate system
+        with open(self.filename, 'r') as f:
+            line = f.readline()
+            line = f.readline()
+            if 'LPS' in line:
+                LPS = True
+
+        # reader for RAS coordinate system
         lmk_df = pd.read_csv(self.filename, header=header, skiprows=skiprows)
         num_landmarks = len(lmk_df)
         landmarks = np.zeros([num_landmarks, 3])
@@ -50,6 +58,9 @@ class Easy_Landmark(object):
                 i += 1
         else:
             landmarks = lmk_df[[1, 2, 3]].values
+
+        if LPS:
+            landmarks[:, 0:2] *= -1 # flip the first two axes
 
         self.points = landmarks
 
@@ -185,7 +196,7 @@ class Easy_Landmark(object):
     def to_fcsv(self, fcsv_filename, landmark_name_list):
         with open(fcsv_filename, 'w') as file:
             file.write('# Markups fiducial file version = 4.10\n')
-            file.write('# CoordinateSystem = 0\n')
+            file.write('# CoordinateSystem = RAS\n')
             file.write('# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID\n')
             for i in range(self.points.shape[0]):
                 file.write('vtkMRMLMarkupsFiducialNode_{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},,{12}\n'.format(i,
