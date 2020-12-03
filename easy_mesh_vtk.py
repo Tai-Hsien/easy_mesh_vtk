@@ -322,9 +322,9 @@ class Easy_Mesh(object):
                 clf = svm.SVC()
             clf.fit(given_cells, given_cell_attributes.ravel())
             self.cell_attributes[attribute_name][:, 0] = clf.predict(self.cells)
-            self.cell_attributes[attribute_name+'_proba'] = clf.predict_proba(self.cells)
 
             if refine:
+                self.cell_attributes[attribute_name+'_proba'] = clf.predict_proba(self.cells)
                 self.graph_cut_refinement(self.cell_attributes[attribute_name+'_proba'])
         else:
             if self.warning:
