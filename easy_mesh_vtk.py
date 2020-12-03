@@ -450,7 +450,7 @@ class Easy_Mesh(object):
             self.compute_cell_attributes_by_svm(original_cells, original_labels, 'Label')
 
 
-    def mesh_subdivision(self, num_subdivisions, method='loop'):
+    def mesh_subdivision(self, num_subdivisions, method='loop', original_label_status=False):
         if method == 'loop':
             subdivision_reader = vtk.vtkLoopSubdivisionFilter()
         elif method == 'butterfly':
@@ -460,9 +460,7 @@ class Easy_Mesh(object):
                 print('Not a valid subdivision method')
 
         # check mesh has label attribute or not
-        original_label_status = False
-        if 'Label' in self.cell_attributes.keys():
-            original_label_status = True
+        if original_label_status:
             original_cells = self.cells.copy()
             original_labels = self.cell_attributes['Label'].copy()
 
