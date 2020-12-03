@@ -428,11 +428,9 @@ class Easy_Mesh(object):
         self.point_attributes = dict() #reset
 
 
-    def mesh_decimation(self, reduction_rate):
+    def mesh_decimation(self, reduction_rate, original_label_status=False):
         # check mesh has label attribute or not
-        original_label_status = False
-        if 'Label' in self.cell_attributes.keys():
-            original_label_status = True
+        if original_label_status:
             original_cells = self.cells.copy()
             original_labels = self.cell_attributes['Label'].copy()
 
