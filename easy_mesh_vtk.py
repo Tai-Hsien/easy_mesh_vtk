@@ -3,8 +3,6 @@ import sys
 import numpy as np
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk, numpy_to_vtkIdTypeArray
-from scipy.spatial import distance_matrix
-from sklearn import svm
 import math
 
 class Easy_Mesh(object):
@@ -213,6 +211,7 @@ class Easy_Mesh(object):
         update:
             self.cell_attributes['Label']
         '''
+        from scipy.spatial import distance_matrix
         self.cell_attributes['Label'] = np.zeros([self.cell_ids.shape[0], 1])
 
         cell_centers = (self.cells[:, 0:3] + self.cells[:, 3:6] + self.cells[:, 6:9]) / 3.0
@@ -306,7 +305,7 @@ class Easy_Mesh(object):
         self.cell_attributes['Displacement_map'] = displacement_map
 
 
-    def compute_cell_attributes_by_svm(self, given_cells, given_cell_attributes, attribute_name):
+    def compute_cell_attributes_by_svm(self, given_cells, given_cell_attributes, attribute_name, refine=False):
         '''
         inputs:
             given_cells: [n, 9] numpy array
@@ -314,14 +313,92 @@ class Easy_Mesh(object):
         update:
             self.cell_attributes[attribute_name]
         '''
+        from sklearn import svm
         if given_cell_attributes.shape[1] == 1:
             self.cell_attributes[attribute_name] = np.zeros([self.cells.shape[0], 1])
-            clf = svm.SVC()
+            if refine:
+                clf = svm.SVC(probability=True)
+            else:
+                clf = svm.SVC()
             clf.fit(given_cells, given_cell_attributes.ravel())
             self.cell_attributes[attribute_name][:, 0] = clf.predict(self.cells)
+            self.cell_attributes[attribute_name+'_proba'] = clf.predict_proba(self.cells)
+
+            if refine:
+                self.graph_cut_refinement(self.cell_attributes[attribute_name+'_proba'])
         else:
             if self.warning:
                 print('Only support 1D attribute')
+
+    def compute_cell_attributes_by_knn(self, given_cells, given_cell_attributes, attribute_name, k=3, refine=False):
+        '''
+        inputs:
+            given_cells: [n, 9] numpy array
+            given_cell_attributes: [n, 1] numpy array
+        update:
+            self.cell_attributes[attribute_name]
+        '''
+        from sklearn.neighbors import KNeighborsClassifier
+        if given_cell_attributes.shape[1] == 1:
+            self.cell_attributes[attribute_name] = np.zeros([self.cells.shape[0], 1])
+            neigh = KNeighborsClassifier(n_neighbors=k)
+            neigh.fit(given_cells, given_cell_attributes.ravel())
+            self.cell_attributes[attribute_name][:, 0] = neigh.predict(self.cells)
+            self.cell_attributes[attribute_name+'_proba'] = neigh.predict_proba(self.cells)
+
+            if refine:
+                self.graph_cut_refinement(self.cell_attributes[attribute_name+'_proba'])
+        else:
+            if self.warning:
+                print('Only support 1D attribute')
+
+    def graph_cut_refinement(self, patch_prob_output):
+        from pygco import cut_from_graph
+        round_factor = 100
+        patch_prob_output[patch_prob_output<1.0e-6] = 1.0e-6
+
+        # unaries
+        unaries = -round_factor * np.log10(patch_prob_output)
+        unaries = unaries.astype(np.int32)
+        unaries = unaries.reshape(-1, patch_prob_output.shape[1])
+
+        # parawise
+        pairwise = (1 - np.eye(patch_prob_output.shape[1], dtype=np.int32))
+
+        #edges
+        self.get_cell_normals()
+        normals = self.cell_attributes['Normal'][:]
+        cells = self.cells[:]
+        cell_ids = self.cell_ids[:]
+        barycenters = (cells[:, 0:3] + cells[:, 3:6] + cells[:, 6:9])/3.0
+
+        lambda_c = 30
+        edges = np.empty([1, 3], order='C')
+        for i_node in range(cells.shape[0]):
+            # Find neighbors
+            nei = np.sum(np.isin(cell_ids, cell_ids[i_node, :]), axis=1)
+            nei_id = np.where(nei==2)
+            for i_nei in nei_id[0][:]:
+                if i_node < i_nei:
+                    cos_theta = np.dot(normals[i_node, 0:3], normals[i_nei, 0:3])/np.linalg.norm(normals[i_node, 0:3])/np.linalg.norm(normals[i_nei, 0:3])
+                    if cos_theta >= 1.0:
+                        cos_theta = 0.9999
+                    theta = np.arccos(cos_theta)
+                    phi = np.linalg.norm(barycenters[i_node, :] - barycenters[i_nei, :])
+                    if theta > np.pi/2.0:
+                        edges = np.concatenate((edges, np.array([i_node, i_nei, -math.log10(theta/np.pi)*phi]).reshape(1, 3)), axis=0)
+                    else:
+                        beta = 1 + np.linalg.norm(np.dot(normals[i_node, 0:3], normals[i_nei, 0:3]))
+                        edges = np.concatenate((edges, np.array([i_node, i_nei, -beta*math.log10(theta/np.pi)*phi]).reshape(1, 3)), axis=0)
+        edges = np.delete(edges, 0, 0)
+        edges[:, 2] *= lambda_c*round_factor
+        edges = edges.astype(np.int32)
+
+        refine_labels = cut_from_graph(edges, unaries, pairwise)
+        refine_labels = refine_labels.reshape([-1, 1])
+
+        # output refined result
+        self.cell_attributes['Label'] = refine_labels
 
 
     def update_cell_ids_and_points(self):
