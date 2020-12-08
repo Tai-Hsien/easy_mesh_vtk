@@ -97,6 +97,10 @@
     mesh.extract_largest_region()
     mesh.to_vtp('keep_largest_surface.vtp')
 	
+	# output as wavefront (.obj) that can be visualized colorfully by MeshMixer with face groups
+	mesh = Easy_Mesh('Sample_01.vtp')
+	mesh.to_obj('Sample_01.obj')
+	
 	
 # easy_landmark_vtk
 

@@ -639,6 +639,21 @@ class Easy_Mesh(object):
         writer.Write()
 
 
+    def to_obj(self, obj_filename):
+        with open(obj_filename, 'w') as f:
+            for i_point in self.points:
+                f.write("v {} {} {}\n".format(i_point[0], i_point[1], i_point[2]))
+
+            for i_label in np.unique(self.cell_attributes['Label']):
+                f.write("g mmGroup{}\n".format(int(i_label)))
+                label_cell_ids = np.where(self.cell_attributes['Label']==i_label)[0]
+                for i_label_cell_id in label_cell_ids:
+                    i_cell = self.cell_ids[i_label_cell_id]
+                    f.write("f {}//{} {}//{} {}//{}\n".format(i_cell[0]+1, i_cell[0]+1, i_cell[1]+1, i_cell[1]+1, i_cell[2]+1, i_cell[2]+1))
+
+
+
+
 #------------------------------------------------------------------------------
 def GetVTKTransformationMatrix(rotate_X=[-180, 180], rotate_Y=[-180, 180], rotate_Z=[-180, 180],
                                translate_X=[-10, 10], translate_Y=[-10, 10], translate_Z=[-10, 10],
